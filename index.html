@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fibonacci Index Screener</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-primary: #0d1117;
+      --bg-surface: #161b22;
+      --bg-elevated: #1c2128;
+      --border: #30363d;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --text-muted: #484f58;
+      --accent: #58a6ff;
+      --bullish: #3fb68b;
+      --bearish: #ff6b6b;
+      --fib-0: #787B86;
+      --fib-236: #e91e63;
+      --fib-382: #ff5722;
+      --fib-50: #ff9800;
+      --fib-618: #4caf50;
+      --fib-786: #2196f3;
+      --fib-100: #787B86;
+      --fib-ext: #9c27b0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* HEADER */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      z-index: 10;
+    }
+
+    .logo {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, var(--accent), #a371f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .logo span { font-weight: 400; opacity: 0.7; }
+
+    .index-tabs {
+      display: flex;
+      gap: 4px;
+    }
+
+    .index-tab {
+      padding: 6px 16px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .index-tab:hover { border-color: var(--text-muted); color: var(--text-primary); }
+    .index-tab.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .timeframe-select {
+      display: flex;
+      gap: 2px;
+      background: var(--bg-primary);
+      border-radius: 6px;
+      padding: 2px;
+    }
+
+    .tf-btn {
+      padding: 4px 10px;
+      background: transparent;
+      border: none;
+      border-radius: 4px;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+
+    .tf-btn:hover { color: var(--text-secondary); }
+    .tf-btn.active { background: var(--bg-elevated); color: var(--text-primary); }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--bullish);
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--bullish);
+      border-radius: 50%;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(63, 182, 139, 0.4); }
+      50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(63, 182, 139, 0); }
+    }
+
+    /* MAIN LAYOUT */
+    main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    #chart-container {
+      flex: 1;
+      position: relative;
+      min-width: 0;
+    }
+
+    /* SIDEBAR */
+    aside {
+      width: 280px;
+      background: var(--bg-surface);
+      border-left: 1px solid var(--border);
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .panel {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .fib-level-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 8px;
+      border-radius: 4px;
+      margin-bottom: 2px;
+      transition: background 0.15s;
+      cursor: default;
+    }
+
+    .fib-level-row:hover { background: var(--bg-elevated); }
+    .fib-level-row.active-zone { background: rgba(88, 166, 255, 0.08); }
+
+    .fib-level-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .fib-color-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .fib-pct { font-size: 13px; font-weight: 600; }
+    .fib-price { font-size: 13px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+    .swing-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      background: var(--bg-primary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .swing-item:hover { background: var(--bg-elevated); }
+    .swing-item.selected { border-left: 3px solid var(--accent); }
+
+    .swing-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .swing-arrow-up { color: var(--bearish); }
+    .swing-arrow-down { color: var(--bullish); }
+
+    .swing-detail {
+      text-align: right;
+      font-size: 12px;
+    }
+
+    .swing-price { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+    .swing-time { color: var(--text-muted); font-size: 11px; }
+
+    .pair-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .pair-nav-btn {
+      padding: 4px 12px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.15s;
+    }
+
+    .pair-nav-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .pair-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .pair-counter { font-size: 12px; color: var(--text-muted); }
+
+    .zone-indicator {
+      padding: 12px;
+      background: var(--bg-primary);
+      border-radius: 6px;
+      text-align: center;
+    }
+
+    .zone-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+    .zone-value { font-size: 18px; font-weight: 700; }
+    .zone-sublabel { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+    /* FOOTER */
+    footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 20px;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .price-display {
+      font-size: 20px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .price-change {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .positive { color: var(--bullish); }
+    .negative { color: var(--bearish); }
+
+    .footer-stats {
+      display: flex;
+      gap: 24px;
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    .stat-label { color: var(--text-muted); margin-right: 4px; }
+    .stat-value { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+    .footer-right {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Lookback control */
+    .lookback-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .lookback-control label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .lookback-control input[type="range"] {
+      flex: 1;
+      accent-color: var(--accent);
+      height: 4px;
+    }
+
+    .lookback-val {
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 600;
+      min-width: 16px;
+      text-align: center;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+
+    .toggle-label { font-size: 12px; color: var(--text-secondary); }
+
+    .toggle {
+      width: 36px;
+      height: 20px;
+      background: var(--border);
+      border-radius: 10px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .toggle.on { background: var(--accent); }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      background: white;
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s;
+    }
+
+    .toggle.on::after { transform: translateX(16px); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">FIB<span>SCREENER</span></div>
+    <div class="index-tabs" id="indexTabs"></div>
+    <div class="header-right">
+      <div class="timeframe-select" id="tfSelect"></div>
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        LIVE
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div id="chart-container"></div>
+    <aside>
+      <div class="panel">
+        <div class="panel-title">Current Price Zone</div>
+        <div class="zone-indicator" id="zoneIndicator">
+          <div class="zone-label">Price is between</div>
+          <div class="zone-value" id="zoneValue">--</div>
+          <div class="zone-sublabel" id="zoneSublabel">--</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Fibonacci Levels</div>
+        <div id="fibLevels"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Swing Points</div>
+        <div id="swingList"></div>
+        <div class="pair-nav" id="pairNav">
+          <button class="pair-nav-btn" id="prevPair" onclick="navigatePair(-1)">&larr; Prev</button>
+          <span class="pair-counter" id="pairCounter">--</span>
+          <button class="pair-nav-btn" id="nextPair" onclick="navigatePair(1)">Next &rarr;</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Settings</div>
+        <div class="lookback-control">
+          <label>Lookback</label>
+          <input type="range" min="2" max="10" value="3" id="lookbackSlider" oninput="onLookbackChange(this.value)">
+          <span class="lookback-val" id="lookbackVal">3</span>
+        </div>
+        <div class="toggle-row" style="margin-top:10px;">
+          <span class="toggle-label">Show All Fib Zones</span>
+          <div class="toggle" id="toggleAllFibs" onclick="toggleAllFibs()"></div>
+        </div>
+        <div class="toggle-row" style="margin-top:6px;">
+          <span class="toggle-label">Show Extensions</span>
+          <div class="toggle on" id="toggleExt" onclick="toggleExtensions()"></div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <footer>
+    <div class="footer-left">
+      <span class="price-display" id="currentPrice">--</span>
+      <span class="price-change" id="priceChange">--</span>
+    </div>
+    <div class="footer-stats">
+      <span><span class="stat-label">O</span><span class="stat-value" id="statOpen">--</span></span>
+      <span><span class="stat-label">H</span><span class="stat-value" id="statHigh">--</span></span>
+      <span><span class="stat-label">L</span><span class="stat-value" id="statLow">--</span></span>
+      <span><span class="stat-label">Vol</span><span class="stat-value" id="statVol">--</span></span>
+      <span><span class="stat-label">Swings</span><span class="stat-value" id="statSwings">--</span></span>
+    </div>
+    <div class="footer-right">Fibonacci Index Screener v1.0</div>
+  </footer>
+
+  <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+  <script>
+    // ================================================================
+    // CONFIGURATION
+    // ================================================================
+    const INDICES = {
+      SPX:  { name: 'S&P 500',      symbol: 'SPX',  base: 5856, vol: 0.0008 },
+      NDX:  { name: 'NASDAQ 100',   symbol: 'NDX',  base: 20640, vol: 0.0012 },
+      DJI:  { name: 'Dow Jones',    symbol: 'DJI',  base: 43280, vol: 0.0006 },
+      RUT:  { name: 'Russell 2000', symbol: 'RUT',  base: 2245, vol: 0.0014 },
+    };
+
+    const TIMEFRAMES = [
+      { label: '1m', minutes: 1 },
+      { label: '5m', minutes: 5 },
+      { label: '15m', minutes: 15 },
+      { label: '1H', minutes: 60 },
+    ];
+
+    const FIB_LEVELS = [
+      { pct: 0,     label: '0%',     color: '#787B86' },
+      { pct: 0.236, label: '23.6%',  color: '#e91e63' },
+      { pct: 0.382, label: '38.2%',  color: '#ff5722' },
+      { pct: 0.5,   label: '50%',    color: '#ff9800' },
+      { pct: 0.618, label: '61.8%',  color: '#4caf50' },
+      { pct: 0.786, label: '78.6%',  color: '#2196f3' },
+      { pct: 1,     label: '100%',   color: '#787B86' },
+    ];
+
+    const FIB_EXTENSIONS = [
+      { pct: 1.272, label: '127.2%', color: '#9c27b0' },
+      { pct: 1.618, label: '161.8%', color: '#7c4dff' },
+    ];
+
+    // ================================================================
+    // STATE
+    // ================================================================
+    let chart, candleSeries, volumeSeries;
+    let currentIndex = 'SPX';
+    let currentTF = 1; // index into TIMEFRAMES
+    let currentData = {};
+    let currentSwings = [];
+    let currentPairIndex = 0;
+    let swingPairs = [];
+    let activePriceLines = [];
+    let lookback = 3;
+    let showAllFibs = false;
+    let showExtensions = true;
+    let liveInterval = null;
+
+    // ================================================================
+    // DATA GENERATION
+    // ================================================================
+    function generateMockData(cfg, tf) {
+      const { base, vol } = cfg;
+      const minutes = TIMEFRAMES[tf].minutes;
+      const totalMinutes = 390; // 6.5 hours
+      const numCandles = Math.floor(totalMinutes / minutes);
+      const candles = [];
+      const volumes = [];
+
+      let price = base + (Math.random() - 0.5) * base * 0.003; // Opening gap
+      let momentum = 0;
+      const seed = base * 1000 + tf * 7;
+
+      // Create intraday pattern: dip -> consolidate -> rally -> pullback
+      const pattern = [];
+      for (let i = 0; i < numCandles; i++) {
+        const pct = i / numCandles;
+        let bias = 0;
+        if (pct < 0.15) bias = -0.3;       // Morning sell-off
+        else if (pct < 0.25) bias = 0.15;   // Bounce
+        else if (pct < 0.45) bias = -0.05;  // Midday drift
+        else if (pct < 0.55) bias = -0.2;   // Midday dip
+        else if (pct < 0.75) bias = 0.25;   // Afternoon rally
+        else if (pct < 0.85) bias = 0.1;    // Continuation
+        else bias = -0.15;                   // EOD profit taking
+        pattern.push(bias);
+      }
+
+      const startTs = Math.floor(Date.UTC(2026, 1, 18, 14, 30, 0) / 1000);
+
+      for (let i = 0; i < numCandles; i++) {
+        const ts = startTs + i * minutes * 60;
+        const noise = (pseudoRandom(seed + i) - 0.5) * 2;
+        momentum = momentum * 0.6 + (pattern[i] + noise) * 0.4;
+
+        const change = momentum * vol * base;
+        const range = vol * base * (0.4 + pseudoRandom(seed + i + 1000) * 0.8);
+
+        const open = price;
+        const close = price + change;
+        const high = Math.max(open, close) + pseudoRandom(seed + i + 2000) * range;
+        const low = Math.min(open, close) - pseudoRandom(seed + i + 3000) * range;
+        const volume = Math.floor(500000 + pseudoRandom(seed + i + 4000) * 2000000);
+
+        candles.push({
+          time: ts,
+          open: round(open),
+          high: round(high),
+          low: round(low),
+          close: round(close),
+        });
+
+        volumes.push({
+          time: ts,
+          value: volume,
+          color: close >= open ? 'rgba(63,182,139,0.3)' : 'rgba(255,107,107,0.3)',
+        });
+
+        price = close;
+      }
+
+      return { candles, volumes };
+    }
+
+    function pseudoRandom(seed) {
+      let x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    }
+
+    function round(n) { return Math.round(n * 100) / 100; }
+
+    // ================================================================
+    // SWING DETECTION
+    // ================================================================
+    function detectSwingPoints(candles, lb) {
+      const swings = [];
+      for (let i = lb; i < candles.length - lb; i++) {
+        let isHigh = true, isLow = true;
+        for (let j = 1; j <= lb; j++) {
+          if (candles[i].high <= candles[i - j].high || candles[i].high <= candles[i + j].high) isHigh = false;
+          if (candles[i].low >= candles[i - j].low || candles[i].low >= candles[i + j].low) isLow = false;
+        }
+        if (isHigh) swings.push({ type: 'high', index: i, price: candles[i].high, time: candles[i].time });
+        if (isLow) swings.push({ type: 'low', index: i, price: candles[i].low, time: candles[i].time });
+      }
+      return swings.sort((a, b) => a.time - b.time);
+    }
+
+    // ================================================================
+    // FIBONACCI CALCULATION
+    // ================================================================
+    function buildSwingPairs(swings) {
+      const pairs = [];
+      for (let i = 0; i < swings.length - 1; i++) {
+        const a = swings[i], b = swings[i + 1];
+        if ((a.type === 'high' && b.type === 'low') || (a.type === 'low' && b.type === 'high')) {
+          const high = a.type === 'high' ? a : b;
+          const low = a.type === 'low' ? a : b;
+          pairs.push({ high, low, startTime: a.time, endTime: b.time });
+        }
+      }
+      return pairs;
+    }
+
+    function calcFibPrices(highPrice, lowPrice) {
+      const diff = highPrice - lowPrice;
+      const levels = FIB_LEVELS.map(f => ({
+        ...f,
+        price: round(lowPrice + diff * f.pct),
+      }));
+      if (showExtensions) {
+        FIB_EXTENSIONS.forEach(f => {
+          levels.push({ ...f, price: round(lowPrice + diff * f.pct) });
+        });
+      }
+      return levels;
+    }
+
+    // ================================================================
+    // CHART SETUP
+    // ================================================================
+    function initChart() {
+      const container = document.getElementById('chart-container');
+      chart = LightweightCharts.createChart(container, {
+        layout: {
+          background: { type: 'solid', color: '#0d1117' },
+          textColor: '#8b949e',
+          fontSize: 12,
+        },
+        grid: {
+          vertLines: { color: 'rgba(48, 54, 61, 0.3)' },
+          horzLines: { color: 'rgba(48, 54, 61, 0.3)' },
+        },
+        crosshair: {
+          mode: LightweightCharts.CrosshairMode.Normal,
+          vertLine: { color: 'rgba(88,166,255,0.3)', style: 0, width: 1, labelBackgroundColor: '#161b22' },
+          horzLine: { color: 'rgba(88,166,255,0.3)', style: 0, width: 1, labelBackgroundColor: '#161b22' },
+        },
+        rightPriceScale: {
+          borderColor: '#30363d',
+          scaleMargins: { top: 0.05, bottom: 0.15 },
+        },
+        timeScale: {
+          borderColor: '#30363d',
+          timeVisible: true,
+          secondsVisible: false,
+        },
+        handleScroll: { vertTouchDrag: false },
+      });
+
+      candleSeries = chart.addCandlestickSeries({
+        upColor: '#3fb68b',
+        downColor: '#ff6b6b',
+        borderUpColor: '#3fb68b',
+        borderDownColor: '#ff6b6b',
+        wickUpColor: '#3fb68b',
+        wickDownColor: '#ff6b6b',
+      });
+
+      volumeSeries = chart.addHistogramSeries({
+        priceFormat: { type: 'volume' },
+        priceScaleId: '',
+        scaleMargins: { top: 0.85, bottom: 0 },
+      });
+
+      new ResizeObserver(entries => {
+        const { width, height } = entries[0].contentRect;
+        chart.applyOptions({ width, height });
+      }).observe(container);
+    }
+
+    // ================================================================
+    // CHART RENDERING
+    // ================================================================
+    function loadIndex(idx) {
+      currentIndex = idx;
+      stopLive();
+
+      const cfg = INDICES[idx];
+      const { candles, volumes } = generateMockData(cfg, currentTF);
+      currentData = { candles, volumes };
+
+      candleSeries.setData(candles);
+      volumeSeries.setData(volumes);
+
+      currentSwings = detectSwingPoints(candles, lookback);
+      swingPairs = buildSwingPairs(currentSwings);
+      currentPairIndex = swingPairs.length - 1; // Show most recent pair
+
+      renderFibonacci();
+      renderSwingMarkers();
+      updateSidebar();
+      updateStatusBar();
+      chart.timeScale().fitContent();
+
+      startLive();
+    }
+
+    function renderFibonacci() {
+      // Clear existing price lines
+      activePriceLines.forEach(pl => {
+        try { candleSeries.removePriceLine(pl); } catch(e) {}
+      });
+      activePriceLines = [];
+
+      if (swingPairs.length === 0) return;
+
+      if (showAllFibs) {
+        swingPairs.forEach((pair, idx) => {
+          const opacity = idx === currentPairIndex ? 1 : 0.25;
+          drawFibForPair(pair, opacity);
+        });
+      } else {
+        const pair = swingPairs[currentPairIndex];
+        if (pair) drawFibForPair(pair, 1);
+      }
+    }
+
+    function drawFibForPair(pair, opacity) {
+      const levels = calcFibPrices(pair.high.price, pair.low.price);
+      levels.forEach(level => {
+        const hexOpacity = Math.round(opacity * 255).toString(16).padStart(2, '0');
+        const color = level.color + (opacity < 1 ? hexOpacity : '');
+        const pl = candleSeries.createPriceLine({
+          price: level.price,
+          color: color,
+          lineWidth: level.pct === 0 || level.pct === 1 ? 2 : 1,
+          lineStyle: level.pct > 1 ? LightweightCharts.LineStyle.Dotted : LightweightCharts.LineStyle.Dashed,
+          axisLabelVisible: opacity > 0.5,
+          title: opacity > 0.5 ? level.label : '',
+        });
+        activePriceLines.push(pl);
+      });
+    }
+
+    function renderSwingMarkers() {
+      const markers = currentSwings.map(s => ({
+        time: s.time,
+        position: s.type === 'high' ? 'aboveBar' : 'belowBar',
+        color: s.type === 'high' ? '#ff6b6b' : '#3fb68b',
+        shape: s.type === 'high' ? 'arrowDown' : 'arrowUp',
+        text: s.type === 'high' ? 'SH' : 'SL',
+      }));
+      markers.sort((a, b) => a.time - b.time);
+      candleSeries.setMarkers(markers);
+    }
+
+    // ================================================================
+    // UI UPDATES
+    // ================================================================
+    function updateSidebar() {
+      // Fibonacci levels panel
+      const fibContainer = document.getElementById('fibLevels');
+      if (swingPairs.length === 0) {
+        fibContainer.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px;">No swing pairs detected. Try adjusting lookback.</div>';
+        document.getElementById('pairCounter').textContent = '0 pairs';
+        document.getElementById('zoneValue').textContent = '--';
+        document.getElementById('zoneSublabel').textContent = '--';
+        return;
+      }
+
+      const pair = swingPairs[currentPairIndex];
+      const levels = calcFibPrices(pair.high.price, pair.low.price);
+      const lastPrice = currentData.candles[currentData.candles.length - 1].close;
+
+      // Find current zone
+      const sortedLevels = [...levels].sort((a, b) => a.price - b.price);
+      let zoneBelow = sortedLevels[0], zoneAbove = sortedLevels[sortedLevels.length - 1];
+      for (let i = 0; i < sortedLevels.length - 1; i++) {
+        if (lastPrice >= sortedLevels[i].price && lastPrice <= sortedLevels[i + 1].price) {
+          zoneBelow = sortedLevels[i];
+          zoneAbove = sortedLevels[i + 1];
+          break;
+        }
+      }
+
+      // Zone indicator
+      document.getElementById('zoneValue').textContent = `${zoneBelow.label} - ${zoneAbove.label}`;
+      document.getElementById('zoneValue').style.color = zoneAbove.color;
+      document.getElementById('zoneSublabel').textContent = `${formatPrice(zoneBelow.price)} - ${formatPrice(zoneAbove.price)}`;
+
+      // Fib levels
+      fibContainer.innerHTML = levels.map(l => {
+        const isInZone = l.label === zoneBelow.label || l.label === zoneAbove.label;
+        return `
+          <div class="fib-level-row ${isInZone ? 'active-zone' : ''}">
+            <div class="fib-level-left">
+              <div class="fib-color-dot" style="background:${l.color}"></div>
+              <span class="fib-pct">${l.label}</span>
+            </div>
+            <span class="fib-price">${formatPrice(l.price)}</span>
+          </div>`;
+      }).join('');
+
+      // Swing list
+      const swingContainer = document.getElementById('swingList');
+      swingContainer.innerHTML = currentSwings.map((s, i) => {
+        const isInPair = swingPairs[currentPairIndex] &&
+          (s.time === swingPairs[currentPairIndex].high.time || s.time === swingPairs[currentPairIndex].low.time);
+        return `
+          <div class="swing-item ${isInPair ? 'selected' : ''}" onclick="selectSwingPair(${i})">
+            <div class="swing-label">
+              <span class="${s.type === 'high' ? 'swing-arrow-up' : 'swing-arrow-down'}">
+                ${s.type === 'high' ? '&#9650;' : '&#9660;'}
+              </span>
+              ${s.type === 'high' ? 'Swing High' : 'Swing Low'}
+            </div>
+            <div class="swing-detail">
+              <div class="swing-price">${formatPrice(s.price)}</div>
+              <div class="swing-time">${formatTime(s.time)}</div>
+            </div>
+          </div>`;
+      }).join('');
+
+      // Pair nav
+      document.getElementById('pairCounter').textContent = `${currentPairIndex + 1} / ${swingPairs.length}`;
+      document.getElementById('prevPair').disabled = currentPairIndex <= 0;
+      document.getElementById('nextPair').disabled = currentPairIndex >= swingPairs.length - 1;
+    }
+
+    function updateStatusBar() {
+      const candles = currentData.candles;
+      if (!candles || candles.length === 0) return;
+
+      const last = candles[candles.length - 1];
+      const first = candles[0];
+      const change = last.close - first.open;
+      const changePct = (change / first.open) * 100;
+      const high = Math.max(...candles.map(c => c.high));
+      const low = Math.min(...candles.map(c => c.low));
+      const totalVol = currentData.volumes.reduce((s, v) => s + v.value, 0);
+
+      document.getElementById('currentPrice').textContent = formatPrice(last.close);
+      const changeEl = document.getElementById('priceChange');
+      changeEl.textContent = `${change >= 0 ? '+' : ''}${formatPrice(change)} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%)`;
+      changeEl.className = `price-change ${change >= 0 ? 'positive' : 'negative'}`;
+
+      document.getElementById('statOpen').textContent = formatPrice(first.open);
+      document.getElementById('statHigh').textContent = formatPrice(high);
+      document.getElementById('statLow').textContent = formatPrice(low);
+      document.getElementById('statVol').textContent = formatVolume(totalVol);
+      document.getElementById('statSwings').textContent = currentSwings.length;
+    }
+
+    // ================================================================
+    // LIVE SIMULATION
+    // ================================================================
+    function startLive() {
+      liveInterval = setInterval(() => {
+        const candles = currentData.candles;
+        const last = candles[candles.length - 1];
+        const vol = INDICES[currentIndex].vol;
+        const change = (Math.random() - 0.48) * vol * last.close;
+
+        const newClose = round(last.close + change);
+        const updated = {
+          ...last,
+          close: newClose,
+          high: round(Math.max(last.high, newClose)),
+          low: round(Math.min(last.low, newClose)),
+        };
+
+        candles[candles.length - 1] = updated;
+        candleSeries.update(updated);
+
+        // Update price display
+        const first = candles[0];
+        const chg = updated.close - first.open;
+        const chgPct = (chg / first.open) * 100;
+        document.getElementById('currentPrice').textContent = formatPrice(updated.close);
+        const changeEl = document.getElementById('priceChange');
+        changeEl.textContent = `${chg >= 0 ? '+' : ''}${formatPrice(chg)} (${chgPct >= 0 ? '+' : ''}${chgPct.toFixed(2)}%)`;
+        changeEl.className = `price-change ${chg >= 0 ? 'positive' : 'negative'}`;
+      }, 1000);
+    }
+
+    function stopLive() {
+      if (liveInterval) { clearInterval(liveInterval); liveInterval = null; }
+    }
+
+    // ================================================================
+    // EVENT HANDLERS
+    // ================================================================
+    function selectIndex(idx) {
+      currentIndex = idx;
+      document.querySelectorAll('.index-tab').forEach(t => t.classList.toggle('active', t.dataset.idx === idx));
+      loadIndex(idx);
+    }
+
+    function selectTimeframe(tfIdx) {
+      currentTF = tfIdx;
+      document.querySelectorAll('.tf-btn').forEach((t, i) => t.classList.toggle('active', i === tfIdx));
+      loadIndex(currentIndex);
+    }
+
+    function navigatePair(dir) {
+      const next = currentPairIndex + dir;
+      if (next >= 0 && next < swingPairs.length) {
+        currentPairIndex = next;
+        renderFibonacci();
+        updateSidebar();
+      }
+    }
+
+    function selectSwingPair(swingIdx) {
+      // Find pair containing this swing
+      for (let i = 0; i < swingPairs.length; i++) {
+        const p = swingPairs[i];
+        if (currentSwings[swingIdx].time === p.high.time || currentSwings[swingIdx].time === p.low.time) {
+          currentPairIndex = i;
+          renderFibonacci();
+          updateSidebar();
+          return;
+        }
+      }
+    }
+
+    function onLookbackChange(val) {
+      lookback = parseInt(val);
+      document.getElementById('lookbackVal').textContent = val;
+      currentSwings = detectSwingPoints(currentData.candles, lookback);
+      swingPairs = buildSwingPairs(currentSwings);
+      currentPairIndex = Math.min(currentPairIndex, Math.max(0, swingPairs.length - 1));
+      renderFibonacci();
+      renderSwingMarkers();
+      updateSidebar();
+    }
+
+    function toggleAllFibs() {
+      showAllFibs = !showAllFibs;
+      document.getElementById('toggleAllFibs').classList.toggle('on', showAllFibs);
+      renderFibonacci();
+    }
+
+    function toggleExtensions() {
+      showExtensions = !showExtensions;
+      document.getElementById('toggleExt').classList.toggle('on', showExtensions);
+      renderFibonacci();
+      updateSidebar();
+    }
+
+    // ================================================================
+    // FORMATTERS
+    // ================================================================
+    function formatPrice(p) {
+      if (Math.abs(p) >= 10000) return p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return p.toFixed(2);
+    }
+
+    function formatVolume(v) {
+      if (v >= 1e9) return (v / 1e9).toFixed(1) + 'B';
+      if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+      if (v >= 1e3) return (v / 1e3).toFixed(0) + 'K';
+      return v.toString();
+    }
+
+    function formatTime(ts) {
+      const d = new Date(ts * 1000);
+      const h = d.getUTCHours();
+      const m = d.getUTCMinutes();
+      // Convert UTC to EST (UTC-5)
+      let estH = h - 5;
+      if (estH < 0) estH += 24;
+      const ampm = estH >= 12 ? 'PM' : 'AM';
+      const h12 = estH > 12 ? estH - 12 : (estH === 0 ? 12 : estH);
+      return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
+    }
+
+    // ================================================================
+    // INITIALIZATION
+    // ================================================================
+    function init() {
+      // Build index tabs
+      const tabContainer = document.getElementById('indexTabs');
+      Object.keys(INDICES).forEach(idx => {
+        const btn = document.createElement('button');
+        btn.className = `index-tab ${idx === currentIndex ? 'active' : ''}`;
+        btn.dataset.idx = idx;
+        btn.textContent = idx;
+        btn.onclick = () => selectIndex(idx);
+        tabContainer.appendChild(btn);
+      });
+
+      // Build timeframe buttons
+      const tfContainer = document.getElementById('tfSelect');
+      TIMEFRAMES.forEach((tf, i) => {
+        const btn = document.createElement('button');
+        btn.className = `tf-btn ${i === currentTF ? 'active' : ''}`;
+        btn.textContent = tf.label;
+        btn.onclick = () => selectTimeframe(i);
+        tfContainer.appendChild(btn);
+      });
+
+      initChart();
+      loadIndex(currentIndex);
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
